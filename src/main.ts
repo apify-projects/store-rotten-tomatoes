@@ -1,28 +1,69 @@
-/**
- * This template is a production ready boilerplate for developing with `PlaywrightCrawler`.
- * Use this to bootstrap your projects using the most up-to-date code.
- * If you're looking for examples or want to learn more, see README.
- */
-
-// For more information, see https://sdk.apify.com
-import { Actor } from 'apify';
-// For more information, see https://crawlee.dev
-import { PlaywrightCrawler } from 'crawlee';
+import { Actor, log, ProxyConfigurationOptions } from 'apify';
+import { PlaywrightCrawler, RequestOptions } from 'crawlee';
+import { DEFAULT_MAX_RESULTS, LABELS } from './constants.js';
+import { ResultCounter } from './counter.js';
 import { router } from './routes.js';
+import { getItemBaseLink } from './utils.js';
 
-// Initialize the Apify SDK
+interface Input {
+    startUrls: RequestOptions[];
+    proxyConfig?: ProxyConfigurationOptions & { useApifyProxy?: boolean };
+    maxResults?: number;
+}
+
 await Actor.init();
 
-const startUrls = ['https://apify.com'];
+const input = (await Actor.getInput()) as Input;
 
-const proxyConfiguration = await Actor.createProxyConfiguration();
+const { startUrls, maxResults, proxyConfig } = input;
+
+export const resultsCounter = new ResultCounter(maxResults ?? DEFAULT_MAX_RESULTS);
+
+if (!startUrls) {
+    throw new Error('Start urls are not provided.');
+}
+
+if (!Array.isArray(startUrls)) {
+    throw new Error('Start urls must be an array.');
+}
+
+//const proxyConfiguration = await Actor.createProxyConfiguration(proxyConfig);
 
 const crawler = new PlaywrightCrawler({
-    proxyConfiguration,
+    //proxyConfiguration,
     requestHandler: router,
 });
 
-await crawler.run(startUrls);
+for (const url of startUrls) {
+    if (!url.url) {
+        log.warning('Url does not have an URL parameter, skipping.', { url: url });
+        continue;
+    }
 
-// Exit successfully
+    if (!url.url.startsWith('https://www.rottentomatoes.com')) {
+        log.warning('Url does not seem to be from Rotten Tomatoes, skipping.', { url: url.url });
+        continue;
+    }
+
+    const urlSplitted = url.url.split('/');
+
+    if (urlSplitted[3] === 'm') {
+        url.url = getItemBaseLink(url.url);
+        url.label = LABELS.MOVIE;
+    }
+
+    if (urlSplitted[3] === 'tv') {
+        url.url = getItemBaseLink(url.url);
+        url.label = LABELS.TV;
+    }
+
+    if (urlSplitted[3] === 'browse') {
+        url.label = LABELS.BROWSE;
+    }
+
+    await crawler.addRequests([url]);
+}
+
+await crawler.run();
+
 await Actor.exit();

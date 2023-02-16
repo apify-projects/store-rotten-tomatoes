@@ -1,18 +1,32 @@
 {
-    "title": "PlaywrightCrawler Template",
+    "title": "Rotten Tomatoes Scrapper",
+    "description": "Scrapper for https://www.rottentomatoes.com.",
     "type": "object",
     "schemaVersion": 1,
     "properties": {
         "startUrls": {
-            "title": "Start URLs",
+            "title": "Starting URLs",
             "type": "array",
-            "description": "URLs to start with.",
+            "description": "Enter links such as movie/tv show details (for example https://www.rottentomatoes.com/tv/the_office) or links with filters from here: https://www.rottentomatoes.com/browse.",
+            "default": [{ "url": "https://www.rottentomatoes.com/browse/movies_in_theaters" }],
             "editor": "requestListSources",
-            "prefill": [
-                {
-                    "url": "https://apify.com"
-                }
-            ]
+            "prefill": [{ "url": "https://www.rottentomatoes.com/browse/movies_in_theaters" }],
+            "uniqueItems": true
+        },
+        "maxResults": {
+            "title": "Maximum number of results",
+            "type": "integer",
+            "description": "Limit the number of movies/tv shows to scrape",
+            "editor": "number",
+            "prefill": 50
+        },
+        "proxyConfig": {
+            "title": "Proxy configuration",
+            "type": "object",
+            "description": "Select proxies to be used by your crawler.",
+            "editor": "proxy",
+            "prefill": { "useApifyProxy": true }
         }
-    }
+    },
+    "required": ["startUrls"]
 }
