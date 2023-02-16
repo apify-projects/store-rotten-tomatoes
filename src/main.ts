@@ -27,10 +27,10 @@ if (!Array.isArray(startUrls)) {
     throw new Error('Start urls must be an array.');
 }
 
-//const proxyConfiguration = await Actor.createProxyConfiguration(proxyConfig);
+const proxyConfiguration = await Actor.createProxyConfiguration(proxyConfig);
 
 const crawler = new PlaywrightCrawler({
-    //proxyConfiguration,
+    proxyConfiguration,
     requestHandler: router,
 });
 
