@@ -36,17 +36,25 @@ router.addDefaultHandler(async ({ request, crawler, page, log }) => {
     }
 });
 
-// browse pages
+// filtered browse pages (/browse/...)
 router.addHandler(LABELS.BROWSE, async ({ page, crawler, log, request }) => {
     log.info('Getting browsed movies/TV shows', { url: request.loadedUrl });
 
     // cookies
-    await page.click('button[id="onetrust-reject-all-handler"]');
 
+    if (await page.locator('#onetrust-banner-sdk').isVisible()) {
+        await page.click('button[id="onetrust-reject-all-handler"]');
+    }
+
+    let linksAmountPreviousLoop = 0;
     while (true) {
-        const links = await page.$$('[data-qa="discovery-media-list"] a[href^="/m/"]');
+        const links = await page.$$('[data-qa="discovery-media-list-item"]');
 
-        if (!resultsCounter.isUnderLimit(links.length)) {
+        // record the amount of planned links from this page crawl,
+        // so other /browse/ crawls can adjust when to stop/continue
+        const newLinksAmount = links.length - linksAmountPreviousLoop;
+        resultsCounter.addPlannedItems(newLinksAmount);
+        if (!resultsCounter.plannedIsUnderLimit()) {
             break;
         }
 
@@ -56,22 +64,30 @@ router.addHandler(LABELS.BROWSE, async ({ page, crawler, log, request }) => {
         }
 
         await page.click('.discovery__actions button');
+
+        linksAmountPreviousLoop = links.length;
     }
 
-    const links = await page.$$('[data-qa="discovery-media-list"] a[href^="/m/"]');
+    const links = await page.$$('[data-qa="discovery-media-list-item"]');
     for (const link of links) {
         const href = (await link.getAttribute('href')) ?? '';
         if (href.length != 0) {
-            await crawler.addRequests([{ url: `${WEBSITE_URL}${href}`, label: 'movie' }]);
+            await crawler.addRequests([
+                {
+                    url: `${WEBSITE_URL}${href}`,
+                    label: href.startsWith('/m/') ? LABELS.MOVIE : LABELS.TV,
+                },
+            ]);
         }
     }
 });
 
-// scraping movie detail page
+// scraping movie detail page (/m/...)
 router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 
     const movieTitle = $('[data-qa="score-panel-movie-title"]').text().trim();
+    log.info(`Scraping movie: ${movieTitle}`, { url: request.loadedUrl });
 
     const synopsis = $('#movieSynopsis').text().trim();
 
@@ -123,7 +139,7 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
     }
 });
 
-// scraping tv show detail page
+// scraping tv show detail page (/tv/...)
 router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 

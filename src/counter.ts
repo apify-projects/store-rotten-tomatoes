@@ -1,6 +1,7 @@
 export class ResultCounter {
     _maxResults: number;
     _actualResults = 0;
+    _plannedItems = 0;
 
     constructor(maximalResults: number) {
         this._maxResults = maximalResults;
@@ -10,11 +11,15 @@ export class ResultCounter {
         this._actualResults += 1;
     }
 
-    isUnderLimit(amount: number) {
-        return this._actualResults + amount <= this._maxResults;
-    }
-
     reachedMax() {
         return this._actualResults >= this._maxResults;
+    }
+
+    plannedIsUnderLimit() {
+        return this._plannedItems + this._actualResults <= this._maxResults;
+    }
+
+    addPlannedItems(amount: number) {
+        this._plannedItems += amount;
     }
 }
