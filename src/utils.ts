@@ -41,6 +41,10 @@ export const getElementByDataQa = (selector: string, $: CheerioAPI) => {
     return $(`[data-qa="${selector}"]`);
 };
 
+export const getTextByDataQa = (selector: string, $: CheerioAPI) => {
+    return getElementByDataQa(selector, $).text().trim();
+};
+
 export const scrapeNames = (elements: any, limit: number, $: CheerioAPI) => {
     const names = [];
     for (const element of elements) {

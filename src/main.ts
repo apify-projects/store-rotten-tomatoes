@@ -1,15 +1,10 @@
-import { Actor, log, ProxyConfigurationOptions } from 'apify';
-import { PlaywrightCrawler, RequestOptions } from 'crawlee';
+import { Actor, log } from 'apify';
+import { PlaywrightCrawler } from 'crawlee';
 import { DEFAULT_MAX_RESULTS } from './constants.js';
 import { ResultCounter } from './counter.js';
+import { Input } from './interfaces.js';
 import { router } from './routes.js';
 import { createRequestFromUrl } from './utils.js';
-
-interface Input {
-    startUrls: RequestOptions[];
-    proxyConfig?: ProxyConfigurationOptions & { useApifyProxy?: boolean };
-    maxResults?: number;
-}
 
 await Actor.init();
 
