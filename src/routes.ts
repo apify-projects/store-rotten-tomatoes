@@ -1,36 +1,42 @@
 import { createPlaywrightRouter, Dataset } from 'crawlee';
 import { LABELS, WEBSITE_URL } from './constants.js';
 import { resultsCounter } from './main.js';
-import { abortRun, getItemBaseLink } from './utils.js';
+import { abortRun, getElementByDataQa, getItemBaseLink, getLabelFromHref, scrapeNames } from './utils.js';
 
 export const router = createPlaywrightRouter();
 
 // scraping pages other than movie/tv show details and browse pages
-router.addDefaultHandler(async ({ request, crawler, page, log }) => {
+router.addDefaultHandler(async ({ request, crawler, log, parseWithCheerio }) => {
     log.info('Getting all available links for movies/TV shows', { url: request.loadedUrl });
 
+    const $ = await parseWithCheerio();
+
     // getting all available links for movies or tv shows
-    const relativeLinks = await page.$$('a[href^="/m/"], a[href^="/tv/"]');
+    const relativeLinks = $('a[href^="/m/"], a[href^="/tv/"]');
     for (const link of relativeLinks) {
-        const href = (await link.getAttribute('href')) ?? '';
+        const href = $(link).attr('href');
+        if (!href) {
+            continue;
+        }
         const resolvedUrl = `${WEBSITE_URL}${href}`;
         await crawler.addRequests([
             {
                 url: getItemBaseLink(resolvedUrl),
-                label: href.startsWith('/m/') ? LABELS.MOVIE : LABELS.TV,
+                label: getLabelFromHref(href),
             },
         ]);
     }
 
-    const fullLinks = await page.$$(
-        'a[href^="https://www.rottentomatoes.com/m/"], a[href^="https://www.rottentomatoes.com/tv/"]',
-    );
+    const fullLinks = $('a[href^="https://www.rottentomatoes.com/m/"], a[href^="https://www.rottentomatoes.com/tv/"]');
     for (const link of fullLinks) {
-        const href = (await link.getAttribute('href')) ?? '';
+        const href = $(link).attr('href');
+        if (!href) {
+            continue;
+        }
         await crawler.addRequests([
             {
                 url: getItemBaseLink(href),
-                label: href.includes('/m/') ? LABELS.MOVIE : LABELS.TV,
+                label: getLabelFromHref(href),
             },
         ]);
     }
@@ -75,7 +81,7 @@ router.addHandler(LABELS.BROWSE, async ({ page, crawler, log, request }) => {
             await crawler.addRequests([
                 {
                     url: `${WEBSITE_URL}${href}`,
-                    label: href.startsWith('/m/') ? LABELS.MOVIE : LABELS.TV,
+                    label: getLabelFromHref(href),
                 },
             ]);
         }
@@ -103,7 +109,7 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
         }
     }
 
-    const movie: Record<string, string> = {
+    const movie: Record<string, string | null> = {
         title: movieTitle,
         synopsis: synopsis,
         cast: actorNames.join(', '),
@@ -127,8 +133,8 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
     }
 
     const scorePanelElement = $('[data-qa="score-panel"]');
-    movie['tomatometer'] = $(scorePanelElement).attr('tomatometerscore') ?? '';
-    movie['audience score'] = $(scorePanelElement).attr('audiencescore') ?? '';
+    movie['tomatometer'] = $(scorePanelElement).attr('tomatometerscore') ?? null;
+    movie['audience score'] = $(scorePanelElement).attr('audiencescore') ?? null;
     movie['url'] = request.loadedUrl ?? '';
 
     if (resultsCounter.reachedMax()) {
@@ -143,12 +149,8 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
 router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 
-    const getElementByDataQa = (selector: string) => {
-        return $(`[data-qa="${selector}"]`);
-    };
-
     const getTextByDataQa = (selector: string) => {
-        return getElementByDataQa(selector).text().trim();
+        return getElementByDataQa(selector, $).text().trim();
     };
 
     const showTitle = getTextByDataQa('score-panel-series-title');
@@ -160,30 +162,17 @@ router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler })
     const showSynopsis = $('#movieSynopsis').text().trim();
     const numberOfSeasons = $('season-list-item').length;
 
-    const scrapeNames = (elements: any, limit: number) => {
-        const names = [];
-        for (const element of elements) {
-            const name = $(element).text().trim();
-            names.push(name);
-
-            if (names.length >= limit) {
-                break;
-            }
-        }
-        return names;
-    };
-
     // we are limiting number of actors/creators/producers to 3 (as most similiar sites list at most 3)
     const nameAmountLimit = 3;
 
-    const actorElements = getElementByDataQa('cast-item-name');
-    const actorNames = scrapeNames(actorElements, nameAmountLimit);
+    const actorElements = getElementByDataQa('cast-item-name', $);
+    const actorNames = scrapeNames(actorElements, nameAmountLimit, $);
 
-    const creatorsElements = getElementByDataQa('creator');
-    const creatorNames = scrapeNames(creatorsElements, nameAmountLimit);
+    const creatorsElements = getElementByDataQa('creator', $);
+    const creatorNames = scrapeNames(creatorsElements, nameAmountLimit, $);
 
-    const producersElements = getElementByDataQa('series-details-producer');
-    const producerNames = scrapeNames(producersElements, nameAmountLimit);
+    const producersElements = getElementByDataQa('series-details-producer', $);
+    const producerNames = scrapeNames(producersElements, nameAmountLimit, $);
 
     const show: Record<string, string> = {
         title: showTitle,

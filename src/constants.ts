@@ -1,7 +1,7 @@
 export enum LABELS {
-    MOVIE = 'movie',
-    TV = 'tv',
-    BROWSE = 'browse',
+    MOVIE = 'MOVIE',
+    TV = 'TV',
+    BROWSE = 'BROWSE',
 }
 
 export const WEBSITE_URL = 'https://www.rottentomatoes.com';

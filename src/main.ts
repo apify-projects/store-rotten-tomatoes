@@ -34,35 +34,38 @@ const crawler = new PlaywrightCrawler({
     requestHandler: router,
 });
 
-for (const url of startUrls) {
-    if (!url.url) {
-        log.warning('Url does not have an URL parameter, skipping.', { url: url });
+const validRequests = [];
+for (const request of startUrls) {
+    if (!request.url) {
+        log.warning('Url does not have an URL parameter, skipping.', { url: request });
         continue;
     }
 
-    if (!url.url.startsWith('https://www.rottentomatoes.com')) {
-        log.warning('Url does not seem to be from Rotten Tomatoes, skipping.', { url: url.url });
+    const url = new URL(request.url);
+
+    if (url.hostname !== 'https://www.rottentomatoes.com') {
+        log.warning('Url does not seem to be from Rotten Tomatoes, skipping.', { url: request.url });
         continue;
     }
 
-    const urlSplitted = url.url.split('/');
-
-    if (urlSplitted[3] === 'm') {
-        url.url = getItemBaseLink(url.url);
-        url.label = LABELS.MOVIE;
+    if (url.pathname.startsWith('/m/')) {
+        request.url = getItemBaseLink(request.url);
+        request.label = LABELS.MOVIE;
     }
 
-    if (urlSplitted[3] === 'tv') {
-        url.url = getItemBaseLink(url.url);
-        url.label = LABELS.TV;
+    if (url.pathname.startsWith('/tv/')) {
+        request.url = getItemBaseLink(request.url);
+        request.label = LABELS.TV;
     }
 
-    if (urlSplitted[3] === 'browse') {
-        url.label = LABELS.BROWSE;
+    if (url.pathname.startsWith('/browse/')) {
+        request.label = LABELS.BROWSE;
     }
 
-    await crawler.addRequests([url]);
+    validRequests.push(request);
 }
+
+await crawler.addRequests(validRequests);
 
 await crawler.run();
 
