@@ -1,9 +1,25 @@
-import { createPlaywrightRouter, Dataset } from 'crawlee';
+import axios from 'axios';
+import { createPlaywrightRouter, Dataset, RequestOptions } from 'crawlee';
 import { LABELS, WEBSITE_URL } from './constants.js';
 import { resultsCounter } from './main.js';
-import { abortRun, getElementByDataQa, getItemBaseLink, getLabelFromHref, scrapeNames } from './utils.js';
+import { abortRun, createRequestFromLink, getElementByDataQa, scrapeNames } from './utils.js';
 
 export const router = createPlaywrightRouter();
+
+interface BrowseItem {
+    mediaUrl: string;
+}
+
+interface BrowseApiResponse {
+    title: string;
+    grids: { id: string; list: BrowseItem[] }[];
+    pageInfo: {
+        startCursor: string;
+        endCursor: string;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+    };
+}
 
 // scraping pages other than movie/tv show details and browse pages
 router.addDefaultHandler(async ({ request, crawler, log, parseWithCheerio }) => {
@@ -11,81 +27,63 @@ router.addDefaultHandler(async ({ request, crawler, log, parseWithCheerio }) => 
 
     const $ = await parseWithCheerio();
 
+    const requests: RequestOptions[] = [];
+
     // getting all available links for movies or tv shows
     const relativeLinks = $('a[href^="/m/"], a[href^="/tv/"]');
     for (const link of relativeLinks) {
         const href = $(link).attr('href');
-        if (!href) {
-            continue;
+        if (href) {
+            const resolvedUrl = `${WEBSITE_URL}${href}`;
+            requests.push(createRequestFromLink(resolvedUrl));
         }
-        const resolvedUrl = `${WEBSITE_URL}${href}`;
-        await crawler.addRequests([
-            {
-                url: getItemBaseLink(resolvedUrl),
-                label: getLabelFromHref(href),
-            },
-        ]);
     }
 
     const fullLinks = $('a[href^="https://www.rottentomatoes.com/m/"], a[href^="https://www.rottentomatoes.com/tv/"]');
     for (const link of fullLinks) {
         const href = $(link).attr('href');
-        if (!href) {
-            continue;
+        if (href) {
+            requests.push(createRequestFromLink(href));
         }
-        await crawler.addRequests([
-            {
-                url: getItemBaseLink(href),
-                label: getLabelFromHref(href),
-            },
-        ]);
     }
+
+    await crawler.addRequests(requests);
 });
 
 // filtered browse pages (/browse/...)
-router.addHandler(LABELS.BROWSE, async ({ page, crawler, log, request }) => {
+router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
     log.info('Getting browsed movies/TV shows', { url: request.loadedUrl });
 
-    // cookies
+    const browseUrl = new URL(request.loadedUrl!);
+    const apiBaseUrl = `https://${browseUrl.host}/napi/${browseUrl.pathname}`;
 
-    if (await page.locator('#onetrust-banner-sdk').isVisible()) {
-        await page.click('button[id="onetrust-reject-all-handler"]');
-    }
+    const requests: RequestOptions[] = [];
 
-    let linksAmountPreviousLoop = 0;
+    let apiUrlToCall = apiBaseUrl;
     while (true) {
-        const links = await page.$$('[data-qa="discovery-media-list-item"]');
+        const response = await axios.get<BrowseApiResponse>(apiUrlToCall);
+
+        // there is always just one item in the grids array
+        const returnedItems = response.data.grids[0].list;
+        const absoluteLinks = returnedItems.map((item) => `${WEBSITE_URL}${item.mediaUrl}`);
 
         // record the amount of planned links from this page crawl,
-        // so other /browse/ crawls can adjust when to stop/continue
-        const newLinksAmount = links.length - linksAmountPreviousLoop;
-        resultsCounter.addPlannedItems(newLinksAmount);
+        // so other '/browse/' crawls can adjust when to stop/continue
+        requests.push(...absoluteLinks.map((link) => createRequestFromLink(link)));
+        console.log(requests);
+        resultsCounter.addPlannedItems(absoluteLinks.length);
         if (!resultsCounter.plannedIsUnderLimit()) {
             break;
         }
 
-        // check it there is a button for more items and then click it
-        if (await page.isHidden('.discovery__actions')) {
+        if (!response.data.pageInfo.hasNextPage) {
             break;
         }
 
-        await page.click('.discovery__actions button');
-
-        linksAmountPreviousLoop = links.length;
+        apiUrlToCall = `${apiBaseUrl}?after=${response.data.pageInfo.endCursor}`;
     }
 
-    const links = await page.$$('[data-qa="discovery-media-list-item"]');
-    for (const link of links) {
-        const href = (await link.getAttribute('href')) ?? '';
-        if (href.length != 0) {
-            await crawler.addRequests([
-                {
-                    url: `${WEBSITE_URL}${href}`,
-                    label: getLabelFromHref(href),
-                },
-            ]);
-        }
-    }
+    await crawler.addRequests(requests);
 });
 
 // scraping movie detail page (/m/...)

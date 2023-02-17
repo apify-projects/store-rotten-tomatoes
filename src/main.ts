@@ -43,7 +43,7 @@ for (const request of startUrls) {
 
     const url = new URL(request.url);
 
-    if (url.hostname !== 'https://www.rottentomatoes.com') {
+    if (url.hostname !== 'www.rottentomatoes.com') {
         log.warning('Url does not seem to be from Rotten Tomatoes, skipping.', { url: request.url });
         continue;
     }

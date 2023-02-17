@@ -1,5 +1,5 @@
 import { CheerioAPI } from 'cheerio';
-import { Log, PlaywrightCrawler } from 'crawlee';
+import { Log, PlaywrightCrawler, RequestOptions } from 'crawlee';
 import { LABELS, WEBSITE_URL } from './constants.js';
 
 export const getItemBaseLink = (link: string) => {
@@ -12,8 +12,16 @@ export const abortRun = async (crawler: PlaywrightCrawler, log: Log) => {
     await crawler.autoscaledPool!.abort();
 };
 
-export const getLabelFromHref = (href: string) => {
+const getLabelFromHref = (href: string) => {
     return href.startsWith('/m/') ? LABELS.MOVIE : LABELS.TV;
+};
+
+export const createRequestFromLink: (absoluteUrl: string) => RequestOptions = (absoluteUrl) => {
+    const url = new URL(absoluteUrl);
+    return {
+        url: getItemBaseLink(absoluteUrl),
+        label: getLabelFromHref(url.pathname),
+    };
 };
 
 export const getElementByDataQa = (selector: string, $: CheerioAPI) => {
