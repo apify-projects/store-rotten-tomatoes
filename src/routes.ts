@@ -32,7 +32,7 @@ router.addHandler(LABELS.OTHER, async ({ request, crawler, log, parseWithCheerio
         }
     }
 
-    log.info(`Got ${requests.length} links for movies/TV shows`, { url: request.loadedUrl });
+    log.info(`Enqueued ${requests.length} links for movies/TV shows`, { url: request.loadedUrl });
     await crawler.addRequests(requests);
 });
 
@@ -44,7 +44,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
     const requests: RequestOptions[] = [];
 
     let apiUrlToCall = apiBaseUrl;
-    while (true) {
+    for (;;) {
         const response = await axios.get<BrowseApiResponse>(apiUrlToCall);
 
         // there is always just one item in the grids array
@@ -67,7 +67,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
     }
 
     await crawler.addRequests(requests);
-    log.info(`Got links to ${requests.length} browsed movies/TV shows`, { url: request.loadedUrl });
+    log.info(`Enqueued links to ${requests.length} browsed movies/TV shows`, { url: request.loadedUrl });
 });
 
 // scraping movie detail page (/m/...)
