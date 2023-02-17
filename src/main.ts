@@ -12,8 +12,6 @@ const input = (await Actor.getInput()) as Input;
 
 const { startUrls, maxResults, proxyConfig } = input;
 
-export const resultsCounter = new ResultCounter(maxResults ?? DEFAULT_MAX_RESULTS);
-
 if (!startUrls) {
     throw new Error('Start urls are not provided.');
 }
@@ -22,17 +20,10 @@ if (!Array.isArray(startUrls)) {
     throw new Error('Start urls must be an array.');
 }
 
-const proxyConfiguration = await Actor.createProxyConfiguration(proxyConfig);
-
-const crawler = new PlaywrightCrawler({
-    proxyConfiguration,
-    requestHandler: router,
-});
-
 const validRequests = [];
 for (const request of startUrls) {
     if (!request.url) {
-        log.warning('Url does not have an URL parameter, skipping.', { url: request });
+        log.warning('URL parameter is missing, skipping.', { url: request });
         continue;
     }
 
@@ -46,8 +37,15 @@ for (const request of startUrls) {
     validRequests.push(createRequestFromUrl(url.href));
 }
 
-await crawler.addRequests(validRequests);
+export const resultsCounter = new ResultCounter(maxResults ?? DEFAULT_MAX_RESULTS);
 
-await crawler.run();
+const proxyConfiguration = await Actor.createProxyConfiguration(proxyConfig);
+
+const crawler = new PlaywrightCrawler({
+    proxyConfiguration,
+    requestHandler: router,
+});
+
+await crawler.run(validRequests);
 
 await Actor.exit();

@@ -3,6 +3,7 @@ import { createPlaywrightRouter, Dataset, RequestOptions } from 'crawlee';
 import { LABELS, WEBSITE_URL } from './constants.js';
 import { BrowseApiResponse } from './interfaces.js';
 import { resultsCounter } from './main.js';
+import { parseMovieDetailValues } from './parsers.js';
 import { abortRun, createRequestFromUrl, getElementByDataQa, getTextByDataQa, scrapeNames } from './utils.js';
 
 export const router = createPlaywrightRouter();
@@ -73,7 +74,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
 router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 
-    const movieTitle = $('[data-qa="score-panel-movie-title"]').text().trim();
+    const movieTitle = getTextByDataQa('score-panel-movie-title', $);
     const synopsis = $('#movieSynopsis').text().trim();
 
     // we are getting the first 3 actors (as most movie sites list just 3)
@@ -98,20 +99,11 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
     for (const detailItem of movieDetails) {
         const label = $(detailItem).find('.meta-label').text().trim().slice(0, -1).toLowerCase();
 
-        let valuesString = $(detailItem).find('.meta-value').text().trim();
-
-        if (valuesString.includes(',') || valuesString.includes('\n')) {
-            valuesString = valuesString
-                .split('\n')
-                .map((x) => x.replace(',', '').trim())
-                .filter((x) => x != '')
-                .join(', ');
-        }
-
-        movie[label] = valuesString;
+        const values = $(detailItem).find('.meta-value').text().trim();
+        movie[label] = parseMovieDetailValues(values);
     }
 
-    const scorePanelElement = $('[data-qa="score-panel"]');
+    const scorePanelElement = getElementByDataQa('score-panel', $);
     movie['tomatometer'] = $(scorePanelElement).attr('tomatometerscore') ?? null;
     movie['audience score'] = $(scorePanelElement).attr('audiencescore') ?? null;
     movie['url'] = request.loadedUrl ?? '';
@@ -148,7 +140,7 @@ router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler })
     const producersElements = getElementByDataQa('series-details-producer', $);
     const producerNames = scrapeNames(producersElements, nameAmountLimit, $);
 
-    const show: Record<string, string> = {
+    const show: Record<string, string | null> = {
         title: showTitle,
         synopsis: showSynopsis,
         cast: actorNames.join(', '),
@@ -158,11 +150,11 @@ router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler })
         premiere: premiereDate,
         genre,
         seasons: numberOfSeasons.toString(),
-        url: request.loadedUrl ?? '',
     };
 
-    show['tomatometer'] = getTextByDataQa('tomatometer', $);
-    show['audience score'] = getTextByDataQa('audience-score', $);
+    show['tomatometer'] = getTextByDataQa('tomatometer', $).slice(0, -1);
+    show['audience score'] = getTextByDataQa('audience-score', $).slice(0, -1);
+    show['url'] = request.loadedUrl ?? null;
 
     if (resultsCounter.reachedMax()) {
         await abortRun(crawler, log);
