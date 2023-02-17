@@ -2,26 +2,39 @@ import { CheerioAPI } from 'cheerio';
 import { Log, PlaywrightCrawler, RequestOptions } from 'crawlee';
 import { LABELS, WEBSITE_URL } from './constants.js';
 
-export const getItemBaseLink = (link: string) => {
-    const splitted = link.split('/');
-    return `${WEBSITE_URL}/${splitted[3]}/${splitted[4]}`;
-};
-
 export const abortRun = async (crawler: PlaywrightCrawler, log: Log) => {
     log.info('Reached maximum number of results, stopping run.');
     await crawler.autoscaledPool!.abort();
 };
 
-const getLabelFromHref = (href: string) => {
-    return href.startsWith('/m/') ? LABELS.MOVIE : LABELS.TV;
+const getLabelFromEndpoint = (endpoint: string) => {
+    switch (endpoint) {
+        case 'm':
+            return LABELS.MOVIE;
+        case 'tv':
+            return LABELS.TV;
+        case 'browse':
+            return LABELS.BROWSE;
+        default:
+            return LABELS.OTHER;
+    }
 };
 
-export const createRequestFromLink: (absoluteUrl: string) => RequestOptions = (absoluteUrl) => {
-    const url = new URL(absoluteUrl);
-    return {
-        url: getItemBaseLink(absoluteUrl),
-        label: getLabelFromHref(url.pathname),
-    };
+export const createRequestFromUrl: (absoluteUrl: string) => RequestOptions = (absoluteUrl) => {
+    const urlObj = new URL(absoluteUrl);
+
+    const pathNameSplitted = urlObj.pathname.split('/');
+
+    const label = getLabelFromEndpoint(pathNameSplitted[1]);
+
+    let url = urlObj.href;
+    // get base url of the movie/TV show so we can scrape its detail page
+    if (label === LABELS.MOVIE || label === LABELS.TV) {
+        url = `${WEBSITE_URL}/${pathNameSplitted[1]}/${pathNameSplitted[2]}`;
+    }
+
+    const request = { url, label };
+    return request;
 };
 
 export const getElementByDataQa = (selector: string, $: CheerioAPI) => {

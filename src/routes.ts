@@ -2,7 +2,7 @@ import axios from 'axios';
 import { createPlaywrightRouter, Dataset, RequestOptions } from 'crawlee';
 import { LABELS, WEBSITE_URL } from './constants.js';
 import { resultsCounter } from './main.js';
-import { abortRun, createRequestFromLink, getElementByDataQa, scrapeNames } from './utils.js';
+import { abortRun, createRequestFromUrl, getElementByDataQa, scrapeNames } from './utils.js';
 
 export const router = createPlaywrightRouter();
 
@@ -22,7 +22,7 @@ interface BrowseApiResponse {
 }
 
 // scraping pages other than movie/tv show details and browse pages
-router.addDefaultHandler(async ({ request, crawler, log, parseWithCheerio }) => {
+router.addHandler(LABELS.OTHER, async ({ request, crawler, log, parseWithCheerio }) => {
     log.info('Getting all available links for movies/TV shows', { url: request.loadedUrl });
 
     const $ = await parseWithCheerio();
@@ -35,7 +35,7 @@ router.addDefaultHandler(async ({ request, crawler, log, parseWithCheerio }) => 
         const href = $(link).attr('href');
         if (href) {
             const resolvedUrl = `${WEBSITE_URL}${href}`;
-            requests.push(createRequestFromLink(resolvedUrl));
+            requests.push(createRequestFromUrl(resolvedUrl));
         }
     }
 
@@ -43,7 +43,7 @@ router.addDefaultHandler(async ({ request, crawler, log, parseWithCheerio }) => 
     for (const link of fullLinks) {
         const href = $(link).attr('href');
         if (href) {
-            requests.push(createRequestFromLink(href));
+            requests.push(createRequestFromUrl(href));
         }
     }
 
@@ -55,7 +55,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
     log.info('Getting browsed movies/TV shows', { url: request.loadedUrl });
 
     const browseUrl = new URL(request.loadedUrl!);
-    const apiBaseUrl = `https://${browseUrl.host}/napi/${browseUrl.pathname}`;
+    const apiBaseUrl = `${browseUrl.origin}/napi/${browseUrl.pathname}`;
 
     const requests: RequestOptions[] = [];
 
@@ -69,8 +69,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
 
         // record the amount of planned links from this page crawl,
         // so other '/browse/' crawls can adjust when to stop/continue
-        requests.push(...absoluteLinks.map((link) => createRequestFromLink(link)));
-        console.log(requests);
+        requests.push(...absoluteLinks.map((link) => createRequestFromUrl(link)));
         resultsCounter.addPlannedItems(absoluteLinks.length);
         if (!resultsCounter.plannedIsUnderLimit()) {
             break;

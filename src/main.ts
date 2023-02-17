@@ -1,9 +1,9 @@
 import { Actor, log, ProxyConfigurationOptions } from 'apify';
 import { PlaywrightCrawler, RequestOptions } from 'crawlee';
-import { DEFAULT_MAX_RESULTS, LABELS } from './constants.js';
+import { DEFAULT_MAX_RESULTS } from './constants.js';
 import { ResultCounter } from './counter.js';
 import { router } from './routes.js';
-import { getItemBaseLink } from './utils.js';
+import { createRequestFromUrl } from './utils.js';
 
 interface Input {
     startUrls: RequestOptions[];
@@ -48,21 +48,7 @@ for (const request of startUrls) {
         continue;
     }
 
-    if (url.pathname.startsWith('/m/')) {
-        request.url = getItemBaseLink(request.url);
-        request.label = LABELS.MOVIE;
-    }
-
-    if (url.pathname.startsWith('/tv/')) {
-        request.url = getItemBaseLink(request.url);
-        request.label = LABELS.TV;
-    }
-
-    if (url.pathname.startsWith('/browse/')) {
-        request.label = LABELS.BROWSE;
-    }
-
-    validRequests.push(request);
+    validRequests.push(createRequestFromUrl(url.href));
 }
 
 await crawler.addRequests(validRequests);
