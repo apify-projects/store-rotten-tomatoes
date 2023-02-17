@@ -49,12 +49,17 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
 
         // there is always just one item in the grids array
         const returnedItems = response.data.grids[0].list;
-        const absoluteLinks = returnedItems.map((item) => `${WEBSITE_URL}${item.mediaUrl}`);
+
+        const requestsFromItems = returnedItems.map((item) => {
+            const absoluteUrl = `${WEBSITE_URL}${item.mediaUrl}`;
+            return createRequestFromUrl(absoluteUrl);
+        });
+
+        requests.push(...requestsFromItems);
 
         // record the amount of planned links from this page crawl,
         // so other '/browse/' crawls can adjust when to stop/continue
-        requests.push(...absoluteLinks.map((link) => createRequestFromUrl(link)));
-        resultsCounter.addPlannedItems(absoluteLinks.length);
+        resultsCounter.addPlannedItems(requestsFromItems.length);
         if (!resultsCounter.plannedIsUnderLimit()) {
             break;
         }
@@ -106,7 +111,7 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
     const scorePanelElement = getElementByDataQa('score-panel', $);
     movie['tomatometer'] = $(scorePanelElement).attr('tomatometerscore') ?? null;
     movie['audience score'] = $(scorePanelElement).attr('audiencescore') ?? null;
-    movie['url'] = request.loadedUrl ?? '';
+    movie['url'] = request.loadedUrl ?? null;
 
     if (resultsCounter.reachedMax()) {
         await abortRun(crawler, log);
