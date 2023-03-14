@@ -1,4 +1,4 @@
-## What does Rotten Tomatoes Scraper do? 🎥🍿
+## What does Rotten Tomatoes Scraper do? 🍅🍿
 
 This scraper can be used to scrape and extract information from the [Rotten Tomatoes](https://www.rottentomatoes.com/) website about movies and TV shows. This information can be used for variety of purposes, for example:
 
@@ -8,7 +8,7 @@ This scraper can be used to scrape and extract information from the [Rotten Toma
 - **marketing**: identify themes and patterns in currently popular and successful movies or TV shows and what they explore, gain insights into what is working for scpecific audiences; 
 - others such as building **recommendation engines**, creating **visualizations**, **machine learning** and **predictive modeling** and many more...
 
-## How to scrape Rotten Tomatoes 🎬
+## How to scrape Rotten Tomatoes 🎥
 To scrape [Rotten Tomatoes](https://www.rottentomatoes.com/) just follow these few simple steps and you'll get your data in a few minutes:
 
 1. Click on Try for free.
@@ -16,7 +16,7 @@ To scrape [Rotten Tomatoes](https://www.rottentomatoes.com/) just follow these f
 3. Click on Run.
 4. When Rotten Tomatoes Scraper has finished, preview or download your data from the Dataset tab.
 
-### Examples of URLs you can insert as an input
+### Examples of URLs you can insert as an input 🎬
 
 - insert URLs of specific movies or TV shows, scraper will scrape their available details, for example:
     - https://www.rottentomatoes.com/tv/the_office
