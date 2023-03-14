@@ -9,7 +9,7 @@ This scraper can be used to scrape and extract information from the [Rotten Toma
 - others such as building **recommendation engines**, creating **visualizations**, **machine learning** and **predictive modeling** and more...
 
 ## How to scrape Rotten Tomatoes 🎥
-To scrape [Rotten Tomatoes](https://www.rottentomatoes.com/) just follow these few simple steps and you'll get your data in a few minutes:
+To scrape [Rotten Tomatoes](https://www.rottentomatoes.com/) just follow these few simple steps and you'll get your data:
 
 1. Click on Try for free.
 2. Enter one or more URLs you want to scrape.
@@ -55,7 +55,7 @@ To scrape [Rotten Tomatoes](https://www.rottentomatoes.com/) just follow these f
 ```
 
 ## How much will it cost to scrape Rotten Tomatoes? 🎞️
-Apify gives you with $5 free usage credits every month on the [Apify Free plan](https://apify.com/pricing). You can get **todo** results per month from Rotten Tomatoes Scraper for that, so those XXXX results will be completely free!
+Apify gives you with $5 free usage credits every month on the [Apify Free plan](https://apify.com/pricing). You can get on average 1700 results per month from Rotten Tomatoes Scraper for that, so this will be completely for free!
 
 But if you need to get more data regularly from Rotten Tomatoes, you should grab an Apify subscription. We recommend our [$49/month Personal plan](https://apify.com/pricing) or our [ $499/month Team plan](https://apify.com/pricing)!
 
