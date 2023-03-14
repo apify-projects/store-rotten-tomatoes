@@ -1,13 +1,13 @@
 {
-    "title": "Rotten Tomatoes Scrapper",
-    "description": "Scrapper for https://www.rottentomatoes.com.",
+    "title": "Rotten Tomatoes Scraper input",
+    "description": "Insert input data for the Rotten Tomatoes Scraper:",
     "type": "object",
     "schemaVersion": 1,
     "properties": {
         "startUrls": {
             "title": "Starting URLs",
             "type": "array",
-            "description": "Enter links such as movie/tv show details (for example https://www.rottentomatoes.com/tv/the_office) or links with filters from here: https://www.rottentomatoes.com/browse.",
+            "description": "Enter links such as movie/tv show details (for example https://www.rottentomatoes.com/tv/the_office) or links with filters from here: https://www.rottentomatoes.com/browse. See actor Readme for more info",
             "default": [{ "url": "https://www.rottentomatoes.com/browse/movies_in_theaters" }],
             "editor": "requestListSources",
             "prefill": [{ "url": "https://www.rottentomatoes.com/browse/movies_in_theaters" }],
