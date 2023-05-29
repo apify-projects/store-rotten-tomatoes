@@ -126,17 +126,17 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
 router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 
-    const showTitle = getTextByDataQa('score-panel-series-title', $);
-    const network = getTextByDataQa('series-details-network', $);
+    const showTitle = getTextByDataQa('score-panel-title', $);
+    const network = getElementByDataQa('series-details-network', $).parent().find('span').text().trim();
     const premiereDate = getTextByDataQa('series-details-premiere-date', $);
     const genre = getTextByDataQa('series-details-genre', $);
-    const showSynopsis = $('#movieSynopsis').text().trim();
+    const showSynopsis = getTextByDataQa('series-info-description', $);
     const numberOfSeasons = $('season-list-item').length;
 
     // we are limiting number of actors/creators/producers to 3 (as most similiar sites list at most 3)
     const nameAmountLimit = 3;
 
-    const actorElements = getElementByDataQa('cast-item-name', $);
+    const actorElements = getElementByDataQa('cast-member', $);
     const actorNames = scrapeNames(actorElements, nameAmountLimit, $);
 
     const creatorsElements = getElementByDataQa('creator', $);
@@ -157,8 +157,9 @@ router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler })
         seasons: numberOfSeasons.toString(),
     };
 
-    show['tomatometer'] = getTextByDataQa('tomatometer', $).slice(0, -1);
-    show['audience score'] = getTextByDataQa('audience-score', $).slice(0, -1);
+    const scorePanelElement = getElementByDataQa('score-panel', $);
+    show['tomatometer'] = $(scorePanelElement).attr('tomatometerscore') ?? null;
+    show['audience score'] = $(scorePanelElement).attr('audiencescore') ?? null;
     show['url'] = request.loadedUrl ?? null;
 
     if (resultsCounter.reachedMax()) {
