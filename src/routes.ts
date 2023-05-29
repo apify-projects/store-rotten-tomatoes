@@ -38,7 +38,7 @@ router.addHandler(LABELS.OTHER, async ({ request, crawler, log, parseWithCheerio
 
 // filtered browse pages (/browse/...)
 router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
-    const browseUrl = new URL(request.loadedUrl!);
+    const browseUrl = new URL(request.url);
     const apiBaseUrl = `${browseUrl.origin}/napi/${browseUrl.pathname}`;
 
     const requests: RequestOptions[] = [];
@@ -72,7 +72,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
     }
 
     await crawler.addRequests(requests);
-    log.info(`Enqueued links to ${requests.length} browsed movies/TV shows`, { url: request.loadedUrl });
+    log.info(`Enqueued links to ${requests.length} browsed movies/TV shows`, { url: request.url });
 });
 
 // scraping movie detail page (/m/...)

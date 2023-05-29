@@ -34,6 +34,14 @@ export const createRequestFromUrl: (absoluteUrl: string) => RequestOptions = (ab
     }
 
     const request = { url, label };
+
+    if (label === LABELS.BROWSE) {
+        return {
+            ...request,
+            skipNavigation: true,
+        }
+    }
+
     return request;
 };
 
