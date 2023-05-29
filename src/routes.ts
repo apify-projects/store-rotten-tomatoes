@@ -38,7 +38,7 @@ router.addHandler(LABELS.OTHER, async ({ request, crawler, log, parseWithCheerio
 
 // filtered browse pages (/browse/...)
 router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
-    const browseUrl = new URL(request.loadedUrl!);
+    const browseUrl = new URL(request.url);
     const apiBaseUrl = `${browseUrl.origin}/napi/${browseUrl.pathname}`;
 
     const requests: RequestOptions[] = [];
@@ -48,7 +48,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
         const response = await axios.get<BrowseApiResponse>(apiUrlToCall);
 
         // there is always just one item in the grids array
-        const returnedItems = response.data.grids[0].list;
+        const returnedItems = response.data.grid.list;
 
         const requestsFromItems = returnedItems.map((item) => {
             const absoluteUrl = `${WEBSITE_URL}${item.mediaUrl}`;
@@ -72,18 +72,18 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
     }
 
     await crawler.addRequests(requests);
-    log.info(`Enqueued links to ${requests.length} browsed movies/TV shows`, { url: request.loadedUrl });
+    log.info(`Enqueued links to ${requests.length} browsed movies/TV shows`, { url: request.url });
 });
 
 // scraping movie detail page (/m/...)
 router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 
-    const movieTitle = getTextByDataQa('score-panel-movie-title', $);
-    const synopsis = $('#movieSynopsis').text().trim();
+    const movieTitle = getTextByDataQa('score-panel-title', $);
+    const synopsis = getTextByDataQa('movie-info-synopsis', $);
 
     // we are getting the first 3 actors (as most movie sites list just 3)
-    const actorElements = $('.cast-item .media-body a');
+    const actorElements = getElementByDataQa('cast-crew-item-link', $);
     const actorNames: string[] = [];
     for (const actorElement of actorElements) {
         const actorName = $(actorElement).text().trim();
@@ -100,11 +100,11 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
         cast: actorNames.join(', '),
     };
 
-    const movieDetails = $('.content-meta > li');
+    const movieDetails = getElementByDataQa('movie-info-item', $);
     for (const detailItem of movieDetails) {
-        const label = $(detailItem).find('.meta-label').text().trim().slice(0, -1).toLowerCase();
+        const label = $(detailItem).find('[data-qa="movie-info-item-label"]').text().trim().slice(0, -1).toLowerCase();
 
-        const values = $(detailItem).find('.meta-value').text().trim();
+        const values = $(detailItem).find('[data-qa="movie-info-item-value"]').text().trim();
         movie[label] = parseMovieDetailValues(values);
     }
 
@@ -126,17 +126,17 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
 router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 
-    const showTitle = getTextByDataQa('score-panel-series-title', $);
-    const network = getTextByDataQa('series-details-network', $);
+    const showTitle = getTextByDataQa('score-panel-title', $);
+    const network = getElementByDataQa('series-details-network', $).parent().find('span').text().trim();
     const premiereDate = getTextByDataQa('series-details-premiere-date', $);
     const genre = getTextByDataQa('series-details-genre', $);
-    const showSynopsis = $('#movieSynopsis').text().trim();
+    const showSynopsis = getTextByDataQa('series-info-description', $);
     const numberOfSeasons = $('season-list-item').length;
 
     // we are limiting number of actors/creators/producers to 3 (as most similiar sites list at most 3)
     const nameAmountLimit = 3;
 
-    const actorElements = getElementByDataQa('cast-item-name', $);
+    const actorElements = getElementByDataQa('cast-member', $);
     const actorNames = scrapeNames(actorElements, nameAmountLimit, $);
 
     const creatorsElements = getElementByDataQa('creator', $);
@@ -157,8 +157,9 @@ router.addHandler(LABELS.TV, async ({ request, parseWithCheerio, log, crawler })
         seasons: numberOfSeasons.toString(),
     };
 
-    show['tomatometer'] = getTextByDataQa('tomatometer', $).slice(0, -1);
-    show['audience score'] = getTextByDataQa('audience-score', $).slice(0, -1);
+    const scorePanelElement = getElementByDataQa('score-panel', $);
+    show['tomatometer'] = $(scorePanelElement).attr('tomatometerscore') ?? null;
+    show['audience score'] = $(scorePanelElement).attr('audiencescore') ?? null;
     show['url'] = request.loadedUrl ?? null;
 
     if (resultsCounter.reachedMax()) {

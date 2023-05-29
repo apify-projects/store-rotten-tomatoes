@@ -34,6 +34,14 @@ export const createRequestFromUrl: (absoluteUrl: string) => RequestOptions = (ab
     }
 
     const request = { url, label };
+
+    if (label === LABELS.BROWSE) {
+        return {
+            ...request,
+            skipNavigation: true,
+        }
+    }
+
     return request;
 };
 
@@ -48,7 +56,12 @@ export const getTextByDataQa = (selector: string, $: CheerioAPI) => {
 export const scrapeNames = (elements: any, limit: number, $: CheerioAPI) => {
     const names = [];
     for (const element of elements) {
-        const name = $(element).text().trim();
+        let name = $(element).text().trim();
+
+        if (name.endsWith(',')) {
+            name = name.substring(0, name.length - 1);
+        }
+
         names.push(name);
 
         if (names.length >= limit) {
