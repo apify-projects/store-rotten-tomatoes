@@ -48,7 +48,7 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
         const response = await axios.get<BrowseApiResponse>(apiUrlToCall);
 
         // there is always just one item in the grids array
-        const returnedItems = response.data.grids[0].list;
+        const returnedItems = response.data.grid.list;
 
         const requestsFromItems = returnedItems.map((item) => {
             const absoluteUrl = `${WEBSITE_URL}${item.mediaUrl}`;
@@ -79,11 +79,11 @@ router.addHandler(LABELS.BROWSE, async ({ crawler, log, request }) => {
 router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler }) => {
     const $ = await parseWithCheerio();
 
-    const movieTitle = getTextByDataQa('score-panel-movie-title', $);
-    const synopsis = $('#movieSynopsis').text().trim();
+    const movieTitle = getTextByDataQa('score-panel-title', $);
+    const synopsis = getTextByDataQa('movie-info-synopsis', $);
 
     // we are getting the first 3 actors (as most movie sites list just 3)
-    const actorElements = $('.cast-item .media-body a');
+    const actorElements = getElementByDataQa('cast-crew-item-link', $);
     const actorNames: string[] = [];
     for (const actorElement of actorElements) {
         const actorName = $(actorElement).text().trim();
@@ -100,11 +100,11 @@ router.addHandler(LABELS.MOVIE, async ({ request, parseWithCheerio, log, crawler
         cast: actorNames.join(', '),
     };
 
-    const movieDetails = $('.content-meta > li');
+    const movieDetails = getElementByDataQa('movie-info-item', $);
     for (const detailItem of movieDetails) {
-        const label = $(detailItem).find('.meta-label').text().trim().slice(0, -1).toLowerCase();
+        const label = $(detailItem).find('[data-qa="movie-info-item-label"]').text().trim().slice(0, -1).toLowerCase();
 
-        const values = $(detailItem).find('.meta-value').text().trim();
+        const values = $(detailItem).find('[data-qa="movie-info-item-value"]').text().trim();
         movie[label] = parseMovieDetailValues(values);
     }
 
