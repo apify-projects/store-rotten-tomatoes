@@ -19,6 +19,6 @@ interface PageInfo {
 
 export interface BrowseApiResponse {
     title: string;
-    grids: { id: string; list: BrowseItem[] }[];
+    grid: { id: string; list: BrowseItem[] };
     pageInfo: PageInfo;
 }
